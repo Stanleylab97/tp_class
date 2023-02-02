@@ -1,10 +1,52 @@
+import 'dart:io';
+import 'package:cherry_toast/cherry_toast.dart';
+import 'package:cherry_toast/resources/arrays.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:tp_class/article.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:tp_class/auth/login.dart';
+import 'package:tp_class/auth/verify.dart';
+import 'package:hive_flutter/hive_flutter.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:tp_class/setting_account.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-    await Firebase.initializeApp();
+  await Firebase.initializeApp();
+  Paint.enableDithering = true;
+
+  if (Platform.isWindows || Platform.isLinux || Platform.isMacOS || kIsWeb) {
+    await Hive.initFlutter('tp_class');
+  } else {
+    await Hive.initFlutter();
+  }
+
+  Future<void> openHiveBox(String boxName, {bool limit = false}) async {
+    final box = await Hive.openBox(boxName).onError((error, stackTrace) async {
+      final Directory dir = await getApplicationDocumentsDirectory();
+      final String dirPath = dir.path;
+      File dbFile = File('$dirPath/$boxName.hive');
+      File lockFile = File('$dirPath/$boxName.lock');
+      if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
+        dbFile = File('$dirPath/tp_class/$boxName.hive');
+        lockFile = File('$dirPath/tp_class/$boxName.lock');
+      }
+      await dbFile.delete();
+      await lockFile.delete();
+      await Hive.openBox(boxName);
+      throw 'Failed to open $boxName Box\nError: $error';
+    });
+    // clear box if it grows large
+    if (limit && box.length > 500) {
+      box.clear();
+    }
+  }
+
+  await openHiveBox('settings');
+
   runApp(const MyApp());
 }
 
@@ -17,25 +59,25 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'Flutter Demo',
       theme: ThemeData(
-        // This is the theme of your application.
-        //
-        // Try running your application with "flutter run". You'll see the
-        // application has a blue toolbar. Then, without quitting the app, try
-        // changing the primarySwatch below to Colors.green and then invoke
-        // "hot reload" (press "r" in the console where you ran "flutter run",
-        // or simply save your changes to "hot reload" in a Flutter IDE).
-        // Notice that the counter didn't reset back to zero; the application
-        // is not restarted.
         primarySwatch: Colors.blue,
       ),
       debugShowCheckedModeBanner: false,
       home: const MyHomePage(),
+      initialRoute: 'phone',
+      routes: {
+        'phone': (context) => PhoneAuth(),
+        'verify': (context) => Verify(),
+        'home': (context) => MyHomePage(),
+        'fill_profile': (context) => SettingUser()
+      },
     );
   }
 }
 
 class MyHomePage extends StatefulWidget {
-  const MyHomePage({super.key, });
+  const MyHomePage({
+    super.key,
+  });
 
   // This widget is the home page of your application. It is stateful, meaning
   // that it has a State object (defined below) that contains fields that affect
@@ -46,13 +88,25 @@ class MyHomePage extends StatefulWidget {
   // used by the build method of the State. Fields in a Widget subclass are
   // always marked "final".
 
- 
-
   @override
   State<MyHomePage> createState() => _MyHomePageState();
 }
 
 class _MyHomePageState extends State<MyHomePage> {
+    String? username , nom, photo, phone;
+  @override
+  void initState() {
+    final currentUser = Hive.box('settings').get("currentUser") as Map;
+    nom = currentUser['nom'] + ' ' + currentUser['prenom'];
+    username     = currentUser['username'];
+        photo     = currentUser['photo'];
+        phone= currentUser['phoneNumber'];
+
+
+    // TODO: implement initState
+    super.initState();
+  }
+
   @override
   Widget build(BuildContext context) {
     Size size = MediaQuery.of(context).size;
@@ -62,7 +116,6 @@ class _MyHomePageState extends State<MyHomePage> {
           title: Text("Mon profil"),
           centerTitle: true,
           //leading: MenuWidget(),
-         
         ),
         body: Padding(
           padding: const EdgeInsets.all(8.0),
@@ -77,11 +130,35 @@ class _MyHomePageState extends State<MyHomePage> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            CircleAvatar(
-                              radius: 60,
-                              backgroundImage:
-                                  AssetImage('assets/images/user.jpeg'),
-                            ),
+                            if (photo == "")
+                              CircleAvatar(
+                                radius: 60,
+                                backgroundImage:
+                                    AssetImage('assets/images/user.png'),
+                              )
+                            else
+                              SizedBox(
+                                height: 130,width: 130
+                                ,
+                                child: ClipRRect(
+                                    borderRadius: BorderRadius.circular(100.0),
+                                    child: CachedNetworkImage(
+                                      fit: BoxFit.cover,
+                                      errorWidget: (context, _, __) =>
+                                          const Image(
+                                        fit: BoxFit.cover,
+                                        image: AssetImage(
+                                            'assets/images/user.png'),
+                                      ),
+                                      imageUrl: photo!,
+                                      placeholder: (context, url) => Image(
+                                        fit: BoxFit.cover,
+                                        image: const AssetImage(
+                                          'assets/images/user.png',
+                                        ),
+                                      ),
+                                    )),
+                              ),
                             SizedBox(
                               height: 20,
                             ),
@@ -97,7 +174,10 @@ class _MyHomePageState extends State<MyHomePage> {
                             ),
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [Icon(Icons.phone), Text("97569701")],
+                              children: [
+                                Icon(Icons.phone),
+                                Text(phone.toString() ??"")
+                              ],
                             ),
                             SizedBox(
                               height: 20,
@@ -195,7 +275,7 @@ class _MyHomePageState extends State<MyHomePage> {
                       SizedBox(height: 10),
                       Text("Flutter Developer",
                           style: TextStyle(fontSize: 20, color: Colors.white)),
-                      Text("valdo@gmail.com",
+                      Text("",
                           style: TextStyle(fontSize: 17, color: Colors.white)),
                     ],
                   ),
@@ -223,11 +303,28 @@ class _MyHomePageState extends State<MyHomePage> {
                 ),
                 ListTile(
                   iconColor: Colors.white,
-                  leading: const Icon(Icons.subscriptions),
-                  title: const Text('Go Premium',
+                  leading: const Icon(Icons.exit_to_app),
+                  title: const Text('Déconnexion',
                       style: TextStyle(color: Colors.white)),
-                  onTap: () {
-                    // Add Navigation logic here
+                  onTap: () async {
+                    try {
+                      await FirebaseAuth.instance.signOut();
+                      Hive.box('settings').delete('currentUser');
+
+                      Navigator.pushNamedAndRemoveUntil(
+                          context, 'phone', (route) => false);
+                    } catch (e) {
+                      CherryToast.error(
+                              title: Text("Erreur"),
+                              displayTitle: false,
+                              description: Text("Erreur de déconnexion",
+                                  style: TextStyle(color: Colors.black)),
+                              animationType: AnimationType.fromRight,
+                              animationDuration: Duration(milliseconds: 1000),
+                              autoDismiss: true)
+                          .show(context);
+                      print("Une erreur s'est produite - ${e}");
+                    }
                   },
                 ),
               ],
