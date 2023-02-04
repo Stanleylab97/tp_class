@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/src/widgets/container.dart';
 import 'package:flutter/src/widgets/framework.dart';
 import 'package:tp_class/main.dart';
+import 'package:tp_class/pages/accueil.dart';
 
 class PhoneAuth extends StatefulWidget {
   const PhoneAuth({super.key});
@@ -34,7 +35,7 @@ class _PhoneAuthState extends State<PhoneAuth> {
   @override
   Widget build(BuildContext context) {
     if(FirebaseAuth.instance.currentUser !=null)
-          return MyHomePage();
+          return Accueil();
         else
          return Scaffold(
           body: Container(
@@ -143,10 +144,13 @@ class _PhoneAuthState extends State<PhoneAuth> {
                                 });
                             await FirebaseAuth.instance.verifyPhoneNumber(
                               phoneNumber:
-                                  selectedCountryCode + phoneNumber.text,
+                                                                                selectedCountryCode + phoneNumber.text,
                               verificationCompleted:
                                   (PhoneAuthCredential credential) {},
                               verificationFailed: (FirebaseAuthException e) {
+                                setState(() {
+                                  isloading = true;
+                                });
                                 CherryToast.error(
                                 title: Text("Erreur"),
                                 displayTitle: false,

@@ -4,12 +4,17 @@ import 'package:cherry_toast/resources/arrays.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:tp_class/article.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:tp_class/auth/login.dart';
 import 'package:tp_class/auth/verify.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:tp_class/models/utilisateur.dart';
+import 'package:tp_class/pages/accueil.dart';
+import 'package:tp_class/pages/articleDetails.dart';
+import 'package:tp_class/services/authService.dart';
 import 'package:tp_class/setting_account.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 
@@ -56,19 +61,24 @@ class MyApp extends StatelessWidget {
   // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
+      
+return
+     MaterialApp(
       title: 'Flutter Demo',
       theme: ThemeData(
         primarySwatch: Colors.blue,
       ),
       debugShowCheckedModeBanner: false,
-      home: const MyHomePage(),
+      home: const PhoneAuth(),
       initialRoute: 'phone',
       routes: {
         'phone': (context) => PhoneAuth(),
         'verify': (context) => Verify(),
-        'home': (context) => MyHomePage(),
-        'fill_profile': (context) => SettingUser()
+        //'home': (context) => MyHomePage(),
+       'home': (context) => Accueil(),
+        'fill_profile': (context) => SettingUser(),
+        'article-details': (context) => ArticleDetails()
+        
       },
     );
   }

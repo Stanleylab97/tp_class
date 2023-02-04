@@ -47,7 +47,7 @@ class _ArticleState extends State<Article> {
             padding: const EdgeInsets.all(8.0),
             child: Column(children: [
               
-              ArticleCard(
+              /* ArticleCard(
                 article: ArticleM(
                     title: "La culture de chez nous",
                     content:
@@ -76,7 +76,7 @@ class _ArticleState extends State<Article> {
                         "Il vaut mieux naître femme en Afrique qu’en Asie. Cette affirmation peut surprendre de prime abord lorsque l’on a présent à l’esprit la formule employée par des générations de géographes, à commencer par le grand tropicaliste Pierre Gourou : la femme est la bête de somme de l’Afrique. Cette affirmation est toujours vraie. Mais aujourd’hui, ce sont les femmes qui, concrètement, tiennent les leviers de commande du continent. C’est tout le paradoxe du statut de la femme en Afrique.",
                     image: "assets/images/a2.jpeg",
                     date: "26/06/2022"),
-              )
+              ) */
             ]),
           ),
         ),
