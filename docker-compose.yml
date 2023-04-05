@@ -1,0 +1,90 @@
+version: "3.3"
+services:
+    mariadb: 
+        image: fametec/glpi:9.5.6-mariadb
+        restart: unless-stopped
+        volumes: 
+          - mariadb-glpi-volume:/var/lib/mysql:rw
+        environment: 
+          MYSQL_DATABASE: glpi
+          MYSQL_USER: mtfp 
+          MYSQL_PASSWORD: mtfp_glp1
+          MYSQL_ROOT_PASSWORD: phpmyadmin1 
+        ports: 
+          - 7080:3306
+        networks: 
+          - glpi-backend
+#
+    phpmyadmin:
+       image: phpmyadmin/phpmyadmin
+       container_name: mtfp_phpmyadmin
+       links:
+            - mariadb
+       environment:
+         PMA_HOST: mariadb
+         PMA_ARBITRARY: 1
+         PMA_PORT: 3306
+       restart: always
+       ports:
+        - 7070:80
+       networks: 
+          - glpi-backend
+#
+    glpi: 
+        image: fametec/glpi:latest
+        restart: unless-stopped
+        volumes: 
+          - glpi-volume-files:/var/www/html/files:rw
+          - glpi-volume-plugins:/var/www/html/plugins:rw
+          - glpi-volume-config:/var/www/html/config:rw
+        environment: 
+          GLPI_LANG: fr_FR
+          MARIADB_HOST: mariadb
+          MARIADB_PORT: 7080
+          MARIADB_DATABASE: glpi
+          MARIADB_USER: mtfp
+          MARIADB_PASSWORD: mtfp_glp1
+          VERSION: "9.5.6"
+          PLUGINS: "all"
+        depends_on: 
+          - mariadb
+        ports: 
+          - 7000:80
+        networks: 
+          - glpi-frontend
+          - glpi-backend
+#
+# CRON
+#
+    crond: 
+        image: fametec/glpi:9.5.6-crond
+        restart: unless-stopped
+        depends_on:
+          - mariadb
+        environment: 
+          MARIADB_HOST: mariadb-glpi
+          MARIADB_PORT: 3306
+          MARIADB_DATABASE: glpi
+          MARIADB_USER: mtfp
+          MARIADB_PASSWORD: mtfp_glp1
+          GLPI_LANG: fr_FR
+        volumes: 
+          - glpi-volume-files:/var/www/html/files:rw
+          - glpi-volume-plugins:/var/www/html/plugins:rw
+          - glpi-volume-config:/var/www/html/config:rw
+        networks: 
+          - glpi-backend
+#
+# VOLUMES
+#
+volumes: 
+  glpi-volume-files:
+  glpi-volume-plugins:
+  glpi-volume-config:
+  mariadb-glpi-volume: 
+#
+# NETWORKS
+#
+networks: 
+    glpi-frontend: 
+    glpi-backend:
